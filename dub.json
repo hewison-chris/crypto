@@ -1,0 +1,15 @@
+{
+    "name": "crypto",
+    "description": "Library for cryptographic functions used by the BOA blockchain.",
+
+    "license": "MIT",
+    "authors": [ "BPF Korea" ],
+    "copyright": "Copyright © 2021, BPF Korea",
+
+    "targetType": "library",
+
+    "dependencies": {
+        "bitblob": "~>1.1",
+        "libsodiumd": "~>0.1.1+1.0.18"
+    }
+}
