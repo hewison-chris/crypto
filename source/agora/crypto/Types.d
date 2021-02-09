@@ -42,3 +42,10 @@ public enum PrintMode
     /// Print original value
     Clear,
 }
+
+/// Whether integers are serialized in variable-length form
+public enum CompactMode : bool
+{
+    No,
+    Yes
+}
