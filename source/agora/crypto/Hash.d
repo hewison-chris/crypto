@@ -44,6 +44,7 @@ public import agora.crypto.Types;
 import libsodium;
 
 import std.bitmanip : nativeToLittleEndian;
+import std.traits;
 
 ///
 nothrow @nogc @safe unittest
@@ -120,60 +121,29 @@ public Hash hashFull (T) (scope const auto ref T record)
 /// Ditto
 public void hashPart (T) (scope const auto ref T record, scope HashDg state)
     /*pure*/ nothrow @nogc
-    if (is(T == struct))
 {
     static if (is(typeof(T.init.computeHash(HashDg.init))))
         record.computeHash(state);
     else static if (__traits(compiles, () { const ubyte[] r = T.init[]; }))
         state(record[]);
+
+    else static if (isNarrowString!T)
+        state(cast(const(ubyte[]))record);
+    else static if (is(immutable(T) == immutable(ubyte[])))
+        state(record);
+
+    else static if (is(T : E[], E))
+        foreach (ref r; record)
+            hashPart(r, state);
+
+    else static if (is(immutable(ubyte) == immutable(T)))
+        state((cast(ubyte*)&record)[0 .. ubyte.sizeof]);
+    else static if (isScalarType!T)
+        state(nativeToLittleEndian(record)[0 .. T.sizeof]);
+
     else
         foreach (const ref field; record.tupleof)
             hashPart(field, state);
-}
-
-/// Ditto
-public void hashPart (ubyte record, scope HashDg state) /*pure*/ nothrow @nogc @trusted
-{
-    state((cast(ubyte*)&record)[0 .. ubyte.sizeof]);
-}
-
-/// Ditto
-public void hashPart (ushort record, scope HashDg state) /*pure*/ nothrow @nogc @trusted
-{
-    state(nativeToLittleEndian(record)[0 .. ushort.sizeof]);
-}
-
-/// Ditto
-public void hashPart (uint record, scope HashDg state) /*pure*/ nothrow @nogc @trusted
-{
-    state(nativeToLittleEndian(record)[0 .. uint.sizeof]);
-}
-
-/// Ditto
-public void hashPart (ulong record, scope HashDg state) /*pure*/ nothrow @nogc @trusted
-{
-    state(nativeToLittleEndian(record)[0 .. ulong.sizeof]);
-}
-
-/// Ditto
-public void hashPart (in char[] record, scope HashDg state) /*pure*/ nothrow @nogc @trusted
-{
-    state(cast(const ubyte[])record);
-}
-
-/// Ditto
-public void hashPart (in ubyte[] record, scope HashDg state)
-    /*pure*/ nothrow @nogc @safe
-{
-    state(record);
-}
-
-/// Ditto
-public void hashPart (T) (in T[] records, scope HashDg state)
-    /*pure*/ nothrow @nogc @safe
-{
-    foreach (ref record; records)
-        hashPart(record, state);
 }
 
 // Endianness test
