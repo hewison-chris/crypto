@@ -111,8 +111,9 @@ public Hash hashFull (T) (scope const auto ref T record)
     Hash hash = void;
     crypto_generichash_state state;
     crypto_generichash_init(&state, null, 0, Hash.sizeof);
-    scope HashDg dg = (scope const(ubyte)[] data) @trusted
-                     => cast(void)crypto_generichash_update(&state, data.ptr, data.length);
+    scope HashDg dg = (scope const(ubyte)[] data) @trusted {
+        crypto_generichash_update(&state, data.ptr, data.length);
+    };
     hashPart(record, dg);
     crypto_generichash_final(&state, hash[].ptr, Hash.sizeof);
     return hash;
