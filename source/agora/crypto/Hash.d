@@ -219,8 +219,9 @@ public Hash hashMulti (T...)(auto ref T args) nothrow @nogc @safe
 
     auto dg = () @trusted {
         crypto_generichash_init(&state, null, 0, Hash.sizeof);
-        scope HashDg dg = (scope const(ubyte)[] data) @trusted
-            => cast(void)crypto_generichash_update(&state, data.ptr, data.length);
+        scope HashDg dg = (scope const(ubyte)[] data) @trusted {
+            crypto_generichash_update(&state, data.ptr, data.length);
+        };
         return dg;
     }();
 
