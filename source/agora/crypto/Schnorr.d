@@ -229,7 +229,7 @@ public Signature sign (T) (
       To get `c`, need to precommit `R`
      */
     // Compute the challenge and reduce the hash to a scalar
-    Scalar c = hashFull(Message!T(X, R, data));
+    Scalar c = hashFull(const(Message!T)(X, R, data));
     // Compute `s` part of the proof
     Scalar s = r + (c * x);
     return Sig(R, s).toBlob();
@@ -266,7 +266,7 @@ public bool verify (T) (in Point X, in Signature sig, scope const auto ref T dat
     if (!s.R.isValid())
         return false;
     // Compute the challenge and reduce the hash to a scalar
-    Scalar c = hashFull(Message!T(X, s.R, data));
+    Scalar c = hashFull(const(Message!T)(X, s.R, data));
     // Compute `R + c*X`
     Point RcX = s.R + (c * X);
     return S == RcX;
