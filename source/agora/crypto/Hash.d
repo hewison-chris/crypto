@@ -261,6 +261,16 @@ nothrow @nogc @safe unittest
             hashPart(this.c1, dg);
             hashPart(this.c2, dg);
         }
+        public void serialize (scope SerializeDg dg) const @safe
+        {
+            serializePart(this.c0, dg);
+            serializePart(this.unused_1, dg);
+            serializePart(this.c1, dg);
+            serializePart(this.unused_2, dg);
+            serializePart(this.c2, dg);
+            serializePart(this.unused_3, dg);
+            assert(0, "Should not call custom serialize");
+        }
     }
 
     auto hash_1 = hashMulti(420, "bpfk", S('a', 0, 'b', 0, 'c', 0));
