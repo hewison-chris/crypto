@@ -146,17 +146,6 @@ public struct Sig
     }
 }
 
-// Test serialization for types in `agora.crypto.Schnorr`
-unittest
-{
-    import agora.crypto.Serializer;
-
-    const KP = Pair.random();
-    auto signature = Sig(KP.V, KP.v).toBlob();
-    auto bytes = signature.serializeFull();
-    assert(bytes.deserializeFull!Signature == signature);
-}
-
 /// Represent the message to hash (part of `c`)
 private struct Message (T)
 {
