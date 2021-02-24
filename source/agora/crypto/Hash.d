@@ -40,9 +40,11 @@
 module agora.crypto.Hash;
 
 public import agora.crypto.Types;
-import agora.crypto.Serializer;
 
 import libsodium;
+
+import std.bitmanip : nativeToLittleEndian;
+import std.traits;
 
 ///
 nothrow @nogc @safe unittest
@@ -118,33 +120,31 @@ public Hash hashFull (T) (scope const auto ref T record)
 }
 
 /// Ditto
-public void hashPart (T) (scope const auto ref T record, scope HashDg hasher)
-    /*pure*/ nothrow @nogc @safe
+public void hashPart (T) (scope const auto ref T record, scope HashDg state)
+    /*pure*/ nothrow @nogc
 {
-    static if (is(T == struct))
-    {
-        static if (is(typeof(T.init.computeHash(HashDg.init))))
-            record.computeHash(hasher);
-        else
-            foreach (const ref field; record.tupleof)
-                hashPart(field, hasher);
-    }
+    static if (is(typeof(T.init.computeHash(HashDg.init))))
+        record.computeHash(state);
+    else static if (__traits(compiles, () { const ubyte[] r = T.init[]; }))
+        state(record[]);
+
+    else static if (isNarrowString!T)
+        state(cast(const(ubyte[]))record);
+    else static if (is(immutable(T) == immutable(ubyte[])))
+        state(record);
+
+    else static if (is(T : E[], E))
+        foreach (ref r; record)
+            hashPart(r, state);
+
+    else static if (is(immutable(ubyte) == immutable(T)))
+        state((cast(ubyte*)&record)[0 .. ubyte.sizeof]);
+    else static if (isScalarType!T)
+        state(nativeToLittleEndian(record)[0 .. T.sizeof]);
+
     else
-    {
-        void trusted () @trusted
-        {
-            // Enable the serializePart to be called even though it is not `@nogc nothrow`
-            alias serializePartAttributes = void delegate() @safe nothrow @nogc;
-            // We hash after binary serialization to prevent hash collisions related to empty arrays
-            // See issue https://github.com/bpfkorea/agora/issues/1331
-            scope hashWithSerializer = () @trusted {
-                serializePart(record, hasher, CompactMode.Yes);
-            };
-            scope correctAttributes = cast(serializePartAttributes)hashWithSerializer;
-            correctAttributes();
-        }
-        trusted();
-    }
+        foreach (const ref field; record.tupleof)
+            hashPart(field, state);
 }
 
 // Endianness test
@@ -172,18 +172,9 @@ nothrow @nogc @safe unittest
         0xD4, 0x00, 0x99, 0x23
     ];
     const abc_exp = Hash(hdata, /*isLittleEndian:*/ true);
+    assert(hashFull("abc") == abc_exp);
 
-    // If we use a string of "abc" the length is also hashed so we use ComposedString
-    static struct ComposedString
-    {
-        char a;
-        char b;
-        char c;
-    }
-    Hash abc = hashFull(ComposedString('a', 'b', 'c'));
-    assert(abc == abc_exp);
-
-    static struct ComposedWithComputeHash
+    static struct Composed
     {
         public char c0;
         private int irrelevant;
@@ -194,14 +185,18 @@ nothrow @nogc @safe unittest
 
         public void computeHash (scope HashDg dg) const nothrow @safe @nogc
         {
-            // We can hash in any order we want so lets reverse the order and skip some fields
-            hashPart(this.c2, dg);
-            hashPart(this.c1, dg);
+            // We can hash in any order we want
             hashPart(this.c0, dg);
+            hashPart(this.c1, dg);
+            hashPart(this.c2, dg);
         }
     }
-    Hash cba = hashFull(ComposedWithComputeHash('c', 5, 'b', 42, 'a', "flute"));
-    assert(cba == abc_exp);
+
+    Composed str;
+    str.c0 = 'a';
+    str.c1 = 'b';
+    str.c2 = 'c';
+    assert(hashFull(str) == abc_exp);
 }
 
 /*******************************************************************************
@@ -239,12 +234,16 @@ public Hash hashMulti (T...)(auto ref T args) nothrow @nogc @safe
 ///
 nothrow @nogc @safe unittest
 {
-    struct T
-    {
-        string foo;
-        string bar;
-    }
-    assert(hashFull(T("foo", "bar")) == hashMulti("foo", "bar"));
+    Hash foo = hashFull("foo");
+    Hash bar = hashFull("bar");
+    const merged = Hash(
+        "0xe0343d063b14c52630563ec81b0f91a84ddb05f2cf05a2e4330ddc79bd3a06e57" ~
+        "c2e756f276c112342ff1d6f1e74d05bdb9bf880abd74a2e512654e12d171a74");
+
+    assert(hashMulti(foo, bar) == merged);
+
+    const Hash[2] array = [foo, bar];
+    assert(hashFull(array[]) == merged);
 
     static struct S
     {
@@ -266,29 +265,4 @@ nothrow @nogc @safe unittest
     auto hash_1 = hashMulti(420, "bpfk", S('a', 0, 'b', 0, 'c', 0));
     auto hash_2 = hashMulti(420, "bpfk", S('a', 1, 'b', 2, 'c', 3));
     assert(hash_1 == hash_2);
-
-    static struct X
-    {
-        T t;
-        S s;
-    }
-    auto hash_x1 = hashMulti(T("foo", "bar"), S('a', 0, 'b', 0, 'c', 0));
-    auto hash_x2 = hashFull(X(T("foo", "bar"), S('a', 0, 'b', 0, 'c', 0)));
-    assert(hash_x1 == hash_x2, "Hash of nested struct with computeHash failed");
-}
-
-// https://github.com/bpfkorea/agora/issues/1331
-unittest
-{
-    import std.format;
-
-    static struct S
-    {
-        ubyte[] arr1;
-        ubyte[] arr2;
-    }
-    auto s1 = S([0], null);
-    auto s2 = S(null, [0]);
-    assert(s1.hashFull() != s2.hashFull(),
-        format!"%s == %s"(s1, s2));
 }
