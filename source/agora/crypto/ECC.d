@@ -161,7 +161,7 @@ public struct Scalar
     }
 
     /// Operator overloads for `+`, `-`, `*`
-    public Scalar opBinary (string op)(const scope auto ref Scalar rhs)
+    public Scalar opBinary (string op)(in Scalar rhs)
         const nothrow @nogc @trusted
     {
         // Point.init is Identity for functional operations
@@ -323,7 +323,7 @@ public struct Point
     }
 
     /// Operator overloads for points additions
-    public Point opBinary (string op)(const scope auto ref Point rhs)
+    public Point opBinary (string op)(in Point rhs)
         const nothrow @nogc @trusted
         if (op == "+" || op == "-")
     {
@@ -350,7 +350,7 @@ public struct Point
     }
 
     /// Operator overloads for scalar multiplication
-    public Point opBinary (string op)(const scope auto ref Scalar rhs)
+    public Point opBinary (string op)(in Scalar rhs)
         const nothrow @nogc @trusted
         if (op == "*")
     {
@@ -362,7 +362,7 @@ public struct Point
     }
 
     /// Ditto
-    public Point opBinaryRight (string op)(const scope auto ref Scalar lhs)
+    public Point opBinaryRight (string op)(in Scalar lhs)
         const nothrow @nogc @trusted
         if (op == "*")
     {

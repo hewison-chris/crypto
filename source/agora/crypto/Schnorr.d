@@ -140,7 +140,7 @@ public struct Sig
     }
 
     /// Deserialize a binary blob into a signature
-    public static Sig fromBlob (const ref Signature s) pure nothrow @nogc @safe
+    public static Sig fromBlob (in Signature s) pure nothrow @nogc @safe
     {
         return Sig(Point(s[0 .. Point.sizeof]), Scalar(s[Point.sizeof .. $]));
     }
@@ -163,7 +163,7 @@ public struct Pair
     public Point V;
 
     /// Construct a Pair from a Scalar
-    public static Pair fromScalar(const Scalar v) nothrow @nogc @safe
+    public static Pair fromScalar(in Scalar v) nothrow @nogc @safe
     {
         return Pair(v, v.toPoint());
     }
@@ -185,7 +185,7 @@ unittest
 }
 
 /// Single-signer trivial API
-public Signature sign (T) (const ref Pair kp, auto ref T data)
+public Signature sign (T) (in Pair kp, scope const auto ref T data)
     nothrow @nogc @safe
 {
     const R = Pair.random();
@@ -193,7 +193,7 @@ public Signature sign (T) (const ref Pair kp, auto ref T data)
 }
 
 /// Single-signer privkey API
-public Signature sign (T) (const ref Scalar privateKey, T data)
+public Signature sign (T) (in Scalar privateKey, scope const auto ref T data)
     nothrow @nogc @safe
 {
     const R = Pair.random();
@@ -201,16 +201,14 @@ public Signature sign (T) (const ref Scalar privateKey, T data)
 }
 
 /// Sign with a given `r` (warning: `r` should never be reused with `x`)
-public Signature sign (T) (const ref Pair kp, const ref Pair r, auto ref T data)
+public Signature sign (T) (in Pair kp, in Pair r, scope const auto ref T data)
 {
     return sign!T(kp.v, kp.V, r.V, r.v, data);
 }
 
 /// Complex API, allow multisig
 public Signature sign (T) (
-    const ref Scalar x, const ref Point X,
-    const ref Point R, const ref Scalar r,
-    auto ref T data)
+    in Scalar x, in Point X, in Point R, in Scalar r, scope const auto ref T data)
     nothrow @nogc @trusted
 {
     /*
@@ -252,7 +250,7 @@ public Signature sign (T) (
 
 *******************************************************************************/
 
-public bool verify (T) (const ref Point X, const ref Signature sig, auto ref T data)
+public bool verify (T) (in Point X, in Signature sig, scope const auto ref T data)
     nothrow @nogc @trusted
 {
     Sig s = Sig.fromBlob(sig);
@@ -389,15 +387,15 @@ nothrow @nogc @safe unittest
 }
 
 /// Single-signer as part of multi-sig
-public Scalar multiSigSign (const ref Scalar r,
-    const ref Scalar v, const ref Scalar c) nothrow @nogc @safe
+public Scalar multiSigSign (in Scalar r, in Scalar v, in Scalar c)
+    nothrow @nogc @safe
 {
     return r + (v * c);
 }
 
 /// multi-sig verify
-public bool multiSigVerify (const ref Sig sig,
-    const ref Point sumV, const ref Scalar c) nothrow @nogc @safe
+public bool multiSigVerify (in Sig sig, in Point sumV, in Scalar c)
+    nothrow @nogc @safe
 {
     return sig.s.toPoint() == sig.R + (sumV * c);
 }
