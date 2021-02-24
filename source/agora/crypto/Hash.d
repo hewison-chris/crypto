@@ -123,6 +123,15 @@ public Hash hashFull (T) (scope const auto ref T record)
 public void hashPart (T) (scope const auto ref T record, scope HashDg state)
     /*pure*/ nothrow @nogc
 {
+    // Workaround for https://issues.dlang.org/show_bug.cgi?id=21659
+    // It will be fixed in v2.096.0.
+    // The `__c_ulonglong` type is not available on Windows,
+    // so instead use an alias and a dummy type;
+    version (Posix)
+        import core.stdc.config : __c_ulonglong;
+    else
+        enum __c_ulonglong { Unused }
+
     static if (is(typeof(T.init.computeHash(HashDg.init))))
         record.computeHash(state);
     else static if (__traits(compiles, () { const ubyte[] r = T.init[]; }))
@@ -139,6 +148,11 @@ public void hashPart (T) (scope const auto ref T record, scope HashDg state)
 
     else static if (is(immutable(ubyte) == immutable(T)))
         state((cast(ubyte*)&record)[0 .. ubyte.sizeof]);
+    else static if (is(immutable(T) == immutable(__c_ulonglong)))
+    {
+        static assert(__c_ulonglong.sizeof == ulong.sizeof);
+        state(nativeToLittleEndian!ulong(record)[0 .. ulong.sizeof]);
+    }
     else static if (isScalarType!T)
         state(nativeToLittleEndian(record)[0 .. T.sizeof]);
 
