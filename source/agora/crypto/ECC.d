@@ -427,15 +427,3 @@ unittest
     auto invalid2 = Point.init;
     assert(!invalid2.isValid());
 }
-
-// Test serialization for types in `agora.crypto.ECC`
-unittest
-{
-    import agora.crypto.Serializer;
-    testSymmetry!Scalar();
-    testSymmetry(Scalar.random());
-    testSymmetry!Point();
-    testSymmetry(Scalar.random().toPoint());
-    // Make sure it's serialized as a value type (without length)
-    assert(Scalar.random().toPoint().serializeFull().length == Point.sizeof);
-}

@@ -36,10 +36,3 @@ This module exposes types which can be used by client code, without importing th
 modules directly (in other words, it's a leaf module).
 The aim is to reduce dependencies by allowing a data structure to include a type without gaining
 knowledge of the hashing or signing routines.
-
-## [`agora.crypto.Serializer`](https://github.com/bpfkorea/crypto/blob/v0.x.x/source/agora/crypto/Serializer.d)
-This module exposes two main categories of functions:
-    - `serializeFull` / `serializePart` for serialization
-    - `deserializeFull` for deserialization
-It is included in this crypto library as we are using it in the `agora.crypto.Hash` module of this library to enable
-cross platform hashing of data structures and arrays.
