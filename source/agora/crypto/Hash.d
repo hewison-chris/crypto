@@ -120,7 +120,7 @@ public Hash hashFull (T) (scope const auto ref T record)
 }
 
 /// Ditto
-public void hashPart (T) (scope const auto ref T record, scope HashDg state)
+public void hashPart (T) (scope const auto ref T record, scope HashDg hasher)
     /*pure*/ nothrow @nogc
 {
     // Workaround for https://issues.dlang.org/show_bug.cgi?id=21659
@@ -133,32 +133,32 @@ public void hashPart (T) (scope const auto ref T record, scope HashDg state)
         enum __c_ulonglong { Unused }
 
     static if (is(typeof(T.init.computeHash(HashDg.init))))
-        record.computeHash(state);
+        record.computeHash(hasher);
     else static if (__traits(compiles, () { const ubyte[] r = T.init[]; }))
-        state(record[]);
+        hasher(record[]);
 
     else static if (isNarrowString!T)
-        state(cast(const(ubyte[]))record);
+        hasher(cast(const(ubyte[]))record);
     else static if (is(immutable(T) == immutable(ubyte[])))
-        state(record);
+        hasher(record);
 
     else static if (is(T : E[], E))
         foreach (ref r; record)
-            hashPart(r, state);
+            hashPart(r, hasher);
 
     else static if (is(immutable(ubyte) == immutable(T)))
-        state((cast(ubyte*)&record)[0 .. ubyte.sizeof]);
+        hasher((cast(ubyte*)&record)[0 .. ubyte.sizeof]);
     else static if (is(immutable(T) == immutable(__c_ulonglong)))
     {
         static assert(__c_ulonglong.sizeof == ulong.sizeof);
-        state(nativeToLittleEndian!ulong(record)[0 .. ulong.sizeof]);
+        hasher(nativeToLittleEndian!ulong(record)[0 .. ulong.sizeof]);
     }
     else static if (isScalarType!T)
-        state(nativeToLittleEndian(record)[0 .. T.sizeof]);
+        hasher(nativeToLittleEndian(record)[0 .. T.sizeof]);
 
     else
         foreach (const ref field; record.tupleof)
-            hashPart(field, state);
+            hashPart(field, hasher);
 }
 
 // Endianness test
