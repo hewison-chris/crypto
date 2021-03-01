@@ -117,7 +117,7 @@ public struct Scalar
 
     ***************************************************************************/
 
-    public void toString (scope void delegate(in char[]) @safe sink,
+    public void toString (scope void delegate(scope const(char)[]) @safe sink,
                           PrintMode mode = PrintMode.Obfuscated) const @safe
     {
         final switch (mode)
@@ -136,7 +136,7 @@ public struct Scalar
     public string toString (PrintMode mode = PrintMode.Obfuscated) const @safe
     {
         string result;
-        this.toString((data) { result ~= data; }, mode);
+        this.toString((scope data) { result ~= data; }, mode);
         return result;
     }
 
@@ -304,7 +304,7 @@ public struct Point
     }
 
     /// Expose `toString`
-    public void toString (scope void delegate(in char[]) @safe dg)
+    public void toString (scope void delegate(scope const(char)[]) @safe dg)
         const @safe
     {
         this.data.toString(dg);
