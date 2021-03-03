@@ -138,11 +138,18 @@ public void hashPart (T) (scope const auto ref T record, scope HashDg hasher)
     static if (hasComputeHashMethod!T)
         record.computeHash(hasher);
 
-    else static if (__traits(compiles, () { const ubyte[] r = T.init[]; }))
+    // Static array needs to be handled before arrays (because they convert)
+    // The same logic is present in the serializer
+    else static if (is(T : E[N], E, size_t N))
     {
-        hashVarInt(record[].length, hasher);
-        hasher(record[]);
+        // Small type optimization
+        static if (!hasComputeHashMethod!E && (E.sizeof == 1 || isSomeChar!E))
+            hasher(cast(const(ubyte[]))record);
+        else
+            foreach (ref elem; record)
+                hashPart(elem, hasher);
     }
+
     else static if (isNarrowString!T)
     {
         hashVarInt(record.length, hasher);
@@ -404,4 +411,22 @@ unittest
     auto s2 = S(null, [0, 1, 2]);
     assert(s1.hashFull() != s2.hashFull(),
         format!"%s == %s"(s1, s2));
+}
+
+// Ensure Hash doesn't have its length hashed
+unittest
+{
+    static struct InneficientHash
+    {
+        Hash value;
+
+        public void computeHash (scope HashDg dg) const nothrow @trusted @nogc
+        {
+            foreach (ubyte b; value[])
+                dg((&b)[0 .. 1]);
+        }
+    }
+
+    assert("aaa".hashFull().hashFull() ==
+           InneficientHash("aaa".hashFull()).hashFull());
 }
