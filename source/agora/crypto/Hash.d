@@ -166,6 +166,17 @@ public void hashPart (T) (scope const auto ref T record, scope HashDg hasher)
         foreach (ref r; record)
             hashPart(r, hasher);
     }
+    // Pointers are handled as arrays, only their size must be 0 or 1
+    else static if (is(T : E*, E))
+    {
+        if (record is null)
+            hashVarInt(uint(0), hasher);
+        else
+        {
+            hashVarInt(uint(1), hasher);
+            hashPart(*record, hasher);
+        }
+    }
     else static if (is(immutable(ubyte) == immutable(T)))
         hasher((cast(ubyte*)&record)[0 .. ubyte.sizeof]);
     else static if (is(immutable(T) == immutable(__c_ulonglong)))
