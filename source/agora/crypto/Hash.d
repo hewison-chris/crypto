@@ -176,9 +176,11 @@ public void hashPart (T) (scope const auto ref T record, scope HashDg hasher)
     else static if (isScalarType!T)
         hasher(nativeToLittleEndian(record)[0 .. T.sizeof]);
 
-    else
+    else static if (is(T == struct))
         foreach (const ref field; record.tupleof)
             hashPart(field, hasher);
+    else
+        static assert(0, "Unsupported type: " ~ T.stringof);
 }
 
 /*******************************************************************************
@@ -429,4 +431,11 @@ unittest
 
     assert("aaa".hashFull().hashFull() ==
            InneficientHash("aaa".hashFull()).hashFull());
+}
+
+// Ensure we can't just hash anything
+unittest
+{
+    int[string] aa;
+    static assert(!is(typeof(aa.hashFull())));
 }
