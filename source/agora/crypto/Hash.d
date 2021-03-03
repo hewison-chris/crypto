@@ -87,6 +87,9 @@ nothrow @nogc @safe unittest
 /// Type of delegate passed to `hash` function when there's a state
 public alias HashDg = void delegate(in ubyte[]) /*pure*/ nothrow @safe @nogc;
 
+/// Traits to check if a given type has a custom hashing routine
+private enum hasComputeHashMethod (T) = is(T == struct)
+    && is(typeof(T.init.computeHash(HashDg.init)));
 
 /*******************************************************************************
 
@@ -132,7 +135,7 @@ public void hashPart (T) (scope const auto ref T record, scope HashDg hasher)
     else
         enum __c_ulonglong { Unused }
 
-    static if (is(typeof(T.init.computeHash(HashDg.init))))
+    static if (hasComputeHashMethod!T)
         record.computeHash(hasher);
 
     else static if (__traits(compiles, () { const ubyte[] r = T.init[]; }))
