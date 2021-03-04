@@ -101,7 +101,7 @@ private enum hasComputeHashMethod (T) = is(T == struct)
     Params:
       T = Type of struct to hash
       record = Instance of `T` to hash
-      state  = State delegate, when this struct is nested in another.
+      hasher = State delegate, when this struct is nested in another.
 
     Returns:
       The `Hash` representing this instance
