@@ -376,6 +376,37 @@ nothrow @nogc @safe unittest
     assert(hash_x1 == hash_x2, "Hash of nested struct with computeHash failed");
 }
 
+/*******************************************************************************
+
+    Wrapper to hash an array of `ubyte[]` without its length
+
+    Since bpfkorea/crypto#11, arrays are hashed with their length to prevent
+    vulnerabilities when two arrays are next to one another in a struct.
+    However, sometimes this behavior is not desireable, in which case this
+    struct can be used as a simple wrapper around the binary representation.
+
+*******************************************************************************/
+
+public struct HashNoLength
+{
+    public const(ubyte)[] data;
+
+    ///
+    public void computeHash (scope HashDg dg) const nothrow @safe @nogc
+    {
+        dg(this.data);
+    }
+}
+
+///
+unittest
+{
+    Hash h = "Hello".hashFull();
+    // The later slices the data, using a static array
+    assert(h.hashFull() != h[].hashFull());
+    assert(h.hashFull() == HashNoLength(h[]).hashFull());
+}
+
 /// Test that array with struct inside will use computeHash
 unittest
 {
