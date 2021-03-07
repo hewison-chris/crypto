@@ -79,28 +79,10 @@ nothrow @nogc unittest
 
 public struct Scalar
 {
+    @safe:
+
     /// Internal state
     package BitBlob!(crypto_core_ed25519_SCALARBYTES * 8) data;
-
-    private this (typeof(this.data) data) @safe
-    {
-        this.data = data;
-    }
-
-    /// Construct a scalar from its string representation or a `ubyte[]`
-    public this (T) (T param)
-        if (is(typeof(this.data = typeof(this.data)(param))))
-    {
-        this.data = typeof(this.data)(param);
-    }
-
-    /// Reduce the hash to a scalar
-    public this (Hash param) @trusted nothrow @nogc
-    {
-        static assert(typeof(data).sizeof == 32);
-        static assert(Hash.sizeof == 64);
-        crypto_core_ed25519_scalar_reduce(this.data[].ptr, param[].ptr);
-    }
 
     /***************************************************************************
 
@@ -118,7 +100,7 @@ public struct Scalar
     ***************************************************************************/
 
     public void toString (scope void delegate(scope const(char)[]) @safe sink,
-                          PrintMode mode = PrintMode.Obfuscated) const @safe
+                          PrintMode mode = PrintMode.Obfuscated) const
     {
         final switch (mode)
         {
@@ -133,7 +115,7 @@ public struct Scalar
     }
 
     /// Ditto
-    public string toString (PrintMode mode = PrintMode.Obfuscated) const @safe
+    public string toString (PrintMode mode = PrintMode.Obfuscated) const
     {
         string result;
         this.toString((scope data) { result ~= data; }, mode);
@@ -154,15 +136,36 @@ public struct Scalar
         assert(format("%s", s) == "**SCALAR**");
     }
 
+    nothrow @nogc:
+
+    private this (typeof(this.data) data)
+    {
+        this.data = data;
+    }
+
+    /// Construct a scalar from its string representation or a `ubyte[]`
+    public this (T) (T param)
+        if (is(typeof(this.data = typeof(this.data)(param))))
+    {
+        this.data = typeof(this.data)(param);
+    }
+
+    /// Reduce the hash to a scalar
+    public this (Hash param) @trusted
+    {
+        static assert(typeof(data).sizeof == 32);
+        static assert(Hash.sizeof == 64);
+        crypto_core_ed25519_scalar_reduce(this.data[].ptr, param[].ptr);
+    }
+
     /// Vibe.d deserialization
-    public static Scalar fromString (in char[] str) @safe
+    public static Scalar fromString (in char[] str)
     {
         return Scalar(typeof(this.data).fromString(str));
     }
 
     /// Operator overloads for `+`, `-`, `*`
-    public Scalar opBinary (string op)(in Scalar rhs)
-        const nothrow @nogc @trusted
+    public Scalar opBinary (string op)(in Scalar rhs) const @trusted
     {
         // Point.init is Identity for functional operations
         if (this == Scalar.init)
@@ -185,8 +188,7 @@ public struct Scalar
     }
 
     /// Get the complement of this scalar
-    public Scalar opUnary (string s)()
-        const nothrow @nogc @trusted
+    public Scalar opUnary (string s) () const @trusted
     {
         Scalar result = void;
         static if (s == "-")
@@ -209,7 +211,7 @@ public struct Scalar
 
     ***************************************************************************/
 
-    public Scalar invert () const @nogc @trusted
+    public Scalar invert () const @trusted
     {
         Scalar scalar = this;  // copy
         if (crypto_core_ed25519_scalar_invert(scalar.data[].ptr, this.data[].ptr) != 0)
@@ -218,7 +220,7 @@ public struct Scalar
     }
 
     /// Generate a random scalar
-    public static Scalar random () nothrow @nogc @trusted
+    public static Scalar random () @trusted
     {
         Scalar ret = void;
         crypto_core_ed25519_scalar_random(ret.data[].ptr);
@@ -226,7 +228,7 @@ public struct Scalar
     }
 
     /// Scalar should be greater than zero and less than L:2^252 + 27742317777372353535851937790883648493
-    public bool isValid () nothrow @nogc @safe const
+    public bool isValid () const
     {
         const auto ED25519_L =  BitBlob!256("0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed");
         const auto ZERO =       BitBlob!256("0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -234,7 +236,7 @@ public struct Scalar
     }
 
     /// Return the point corresponding to this scalar multiplied by the generator
-    public Point toPoint () const nothrow @nogc @trusted
+    public Point toPoint () const @trusted
     {
         Point ret = void;
         if (crypto_scalarmult_ed25519_base_noclamp(ret.data[].ptr, this.data[].ptr) != 0)
@@ -245,7 +247,7 @@ public struct Scalar
     }
 
     /// Convenience overload to allow this to be converted to a BitBlob
-    public const(ubyte)[] opSlice () const @safe pure nothrow @nogc
+    public const(ubyte)[] opSlice () const pure
     {
         return this.data[];
     }
@@ -288,43 +290,46 @@ nothrow @nogc @safe unittest
 
 public struct Point
 {
+    @safe:
+
     /// Internal state
     package BitBlob!(crypto_core_ed25519_BYTES * 8) data;
 
-    private this (typeof(this.data) data) @safe @nogc pure nothrow
-    {
-        this.data = data;
-    }
-
-    /// Construct a point from its string representation or a `ubyte[]`
-    public this (T) (T param) nothrow @nogc
-        if (is(typeof(this.data = typeof(this.data)(param))))
-    {
-        this.data = typeof(this.data)(param);
-    }
-
     /// Expose `toString`
     public void toString (scope void delegate(scope const(char)[]) @safe dg)
-        const @safe
+        const
     {
         this.data.toString(dg);
     }
 
     /// Ditto
-    public string toString () const @safe
+    public string toString () const
     {
         return this.data.toString();
     }
 
+    nothrow @nogc:
+
+    private this (typeof(this.data) data) pure
+    {
+        this.data = data;
+    }
+
+    /// Construct a point from its string representation or a `ubyte[]`
+    public this (T) (T param)
+        if (is(typeof(this.data = typeof(this.data)(param))))
+    {
+        this.data = typeof(this.data)(param);
+    }
+
     /// Vibe.d deserialization
-    public static Point fromString (in char[] str) @safe
+    public static Point fromString (in char[] str)
     {
         return Point(typeof(this.data).fromString(str));
     }
 
     /// Operator overloads for points additions
-    public Point opBinary (string op)(in Point rhs)
-        const nothrow @nogc @trusted
+    public Point opBinary (string op)(in Point rhs) const @trusted
         if (op == "+" || op == "-")
     {
         // Point.init is Identity for functional operations
@@ -350,8 +355,7 @@ public struct Point
     }
 
     /// Operator overloads for scalar multiplication
-    public Point opBinary (string op)(in Scalar rhs)
-        const nothrow @nogc @trusted
+    public Point opBinary (string op)(in Scalar rhs) const @trusted
         if (op == "*")
     {
         Point result = void;
@@ -362,8 +366,7 @@ public struct Point
     }
 
     /// Ditto
-    public Point opBinaryRight (string op)(in Scalar lhs)
-        const nothrow @nogc @trusted
+    public Point opBinaryRight (string op)(in Scalar lhs) const @trusted
         if (op == "*")
     {
         Point result = void;
@@ -374,7 +377,7 @@ public struct Point
     }
 
     /// Convenience overload to allow this to be converted to a `PublicKey`
-    public const(ubyte)[] opSlice () const @safe pure nothrow @nogc
+    public const(ubyte)[] opSlice () const pure
     {
         return this.data[];
     }
@@ -392,7 +395,7 @@ public struct Point
     }
 
     // Validation that it is a valid point using libsodium
-    public bool isValid () nothrow @nogc @trusted const
+    public bool isValid () const @trusted
     {
         return (crypto_core_ed25519_is_valid_point(this.data[].ptr) == 1);
     }
