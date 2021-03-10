@@ -22,15 +22,12 @@ import geod24.bitblob;
 /// 512 bits hash type computed via `BLAKE2b`
 public alias Hash = BitBlob!512;
 
-/// The type of a signature
-public alias Signature = BitBlob!512;
-
 unittest
 {
     // Check that our type match libsodium's definition
     import libsodium;
 
-    static assert(Signature.sizeof == crypto_sign_ed25519_BYTES);
+    static assert(BitBlob!512.sizeof == crypto_sign_ed25519_BYTES);
     static assert(Hash.sizeof == crypto_generichash_BYTES_MAX);
 }
 
